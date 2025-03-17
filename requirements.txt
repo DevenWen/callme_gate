@@ -1,0 +1,6 @@
+# 这里列出你的项目依赖
+# 例如：
+# requests==2.28.1
+# numpy==1.23.1 
+Flask
+tabulate
