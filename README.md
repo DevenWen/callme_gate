@@ -1,45 +1,93 @@
-# HTTP请求网关
+# CallMe Gate 
 
-这是一个示例项目，提供日历生成API和HTTP请求追踪功能，并实现了网关-工作节点架构。
+编写这个组件的初衷，是因为我希望有一个公网的服务，同时可以使用本地的进行对这个服务的请求进行响应。
 
-## 功能
+网络上有一些 SaaS 平台，都支持进行 回调（事件）这个特性，假如我们有一个稳定的服务器，接受这些回调，会让我们的 Service 多很多的扩展。
 
-- 日历生成API：根据年份和月份生成格式化的日历
-- HTTP请求跟踪：通过Redis存储HTTP请求和响应数据
-- 网关-工作节点架构：将请求转发到工作节点处理
-- 计数器功能：演示网关-工作节点架构的简单计数器API
+同时，要部署一个稳定的服务器，需要在线上一直部署一个 ECS，但对个人来说，这个非常浪费。那基于现在越来越便宜的云平台，我们可以使用一些便宜的服务方案，加上一些个人设备的运算能力，可以做一个非常简单的低负载联网网关，提供一个非常便宜及简洁的 Service 服务器。因此我花了一点时间，编写了这个框架。
 
-## 架构
+技术调研上，我们可以将 gate 打包成一个**函数计算**程序包，可以发布到 aliyun 函数计算产品中，再使用一个 redis 实例保存请求，再通过本地进程消费 redis 中保存的请求。也就是说：gate 节点保存在线上， worker 节点可以保存在任意的进程中，甚至是你的移动设备。
+
+## 核心功能
+
+- **HTTP请求路由**: 将客户端请求路由到合适的工作节点处理
+- **请求跟踪**: 通过Redis存储跟踪所有HTTP请求和响应数据
+- **动态路由注册**: 工作节点可以动态注册API路由
+- **服务发现**: 支持工作节点的自动注册和发现
+- **计数器API示例**: 包含完整的计数器API实现示例
+- **高可用设计**: 支持多工作节点横向扩展
+
+## 系统架构
 
 ```
-客户端 -> 网关(app.py) -> Redis队列 -> 工作节点(worker.py) -> Redis存储 -> 网关响应客户端
+客户端 -> 网关(gate.py) -> Redis队列 -> 工作节点(worker.py) -> Redis存储 -> 网关响应客户端
 ```
 
 ## 项目结构
 
 ```
 .
-├── app.py                # 主应用文件（网关）
-├── worker.py             # 工作节点应用
-├── lib/                  # 库文件
-│   ├── redis_client.py   # Redis客户端
-│   ├── app_worker.py     # 工作节点核心逻辑
-│   ├── counter.py        # 计数器功能
-│   ├── model/            # 数据模型
-│   │   ├── job.py        # 基础作业类
-│   │   ├── http_job.py   # HTTP作业类
+├── gate.py              # 网关应用入口
+├── worker.py            # 工作节点应用入口
+├── run.sh               # 运行脚本
+├── build.sh             # 构建脚本
+├── lib/                 # 核心库文件
+│   ├── app_worker.py    # 工作节点核心逻辑
+│   ├── redis_client.py  # Redis客户端
+│   ├── counter.py       # 计数器功能示例
+│   ├── model/           # 数据模型
+│   │   ├── job.py       # 基础作业类
+│   │   ├── http_job.py  # HTTP作业类
 │   │   └── job_repository.py # 作业存储库
-│   └── router/           # 路由
-│       └── http_job_router.py # HTTP作业路由
-├── tests/                # 测试文件
-└── requirements.txt      # 依赖库
+│   ├── router/          # 路由系统
+│   │   ├── http_job_router.py # HTTP作业路由器
+│   │   ├── job_dispatcher.py  # 作业分发器
+│   │   ├── node.py           # 节点管理
+│   │   ├── route.py          # 路由定义
+│   │   ├── route_registry.py # 路由注册表
+│   │   └── route_strategy.py # 路由策略
+│   ├── lock/            # 分布式锁
+│   └── auth/            # 认证相关
+├── tests/               # 测试文件
+├── logs/                # 日志文件
+├── .pid/                # 进程ID文件
+└── requirements.txt     # 依赖库
 ```
 
-## 安装依赖
+## 核心模块说明
 
-```bash
-pip install -r requirements.txt
-```
+### 网关 (gate.py)
+
+网关是系统的入口点，负责接收所有客户端请求，并将请求转发给适当的工作节点处理。网关通过装饰器 `@process_via_gateway` 将API请求转换为HttpJob对象并推送到Redis队列。
+
+### 工作节点 (worker.py)
+
+工作节点从Redis队列中获取作业并处理。工作节点通过 `@register_handler` 装饰器将处理函数注册到特定路由路径和HTTP方法。
+
+### 应用工作节点 (lib/app_worker.py)
+
+实现了工作节点的核心逻辑，包括任务队列处理、路由处理器注册、以及处理结果的返回。
+
+### HTTP作业 (lib/model/http_job.py)
+
+表示一个HTTP请求作业，包含请求和响应的所有相关信息，支持序列化和反序列化。
+
+### 路由系统 (lib/router/)
+
+- **http_job_router.py**: HTTP路由处理
+- **route_registry.py**: 路由注册管理
+- **job_dispatcher.py**: 任务分发和结果处理
+- **route_strategy.py**: 路由策略实现（如轮询、随机等）
+
+### 计数器示例 (lib/counter.py)
+
+提供了一个完整的计数器API实现，演示如何使用网关-工作节点架构构建功能。
+
+## 环境要求
+
+- Python 3.7+
+- Redis服务器
+- 可选依赖库：Flask, redis, tabulate, python-dotenv
 
 ## 环境变量
 
@@ -53,56 +101,72 @@ REDIS_PASSWORD=
 REDIS_USE_SSL=false
 ```
 
-## 运行服务
+## 快速开始
 
-1. 启动Redis服务器
-2. 启动工作节点：
+1. 安装依赖
+
+```bash
+pip install -r requirements.txt
+```
+
+2. 启动Redis服务器
+
+3. 运行工作节点
 
 ```bash
 python worker.py
 ```
 
-3. 启动网关服务：
+4. 运行网关服务
 
 ```bash
-python app.py
+python gate.py
 ```
 
-网关将在 http://localhost:9000 启动。
+网关默认在 http://localhost:9000 启动。
 
-## API 端点
+## API端点
 
-### 基础API
+### 系统API
 
-- `POST /`: 日历生成API，接收JSON格式数据 `{"year": "YYYY", "month": "MM"}`
-- `GET /demo`: 示例端点，用于测试
-- `GET /api/jobs/<request_id>`: 获取指定ID的作业信息
-- `DELETE /api/jobs/<request_id>`: 删除指定ID的作业
-- `GET /api/queue/size`: 获取当前队列大小
+- `GET /health`: 健康检查
+- `GET /routes`: 获取所有已注册路由信息
 
-### 计数器API
+### 计数器API示例
 
 - `POST /api/counter/increment`: 增加计数器，参数 `{"name": "计数器名", "amount": 数量}`
 - `POST /api/counter/decrement`: 减少计数器，参数 `{"name": "计数器名", "amount": 数量}`
 - `POST /api/counter/reset`: 重置计数器，参数 `{"name": "计数器名"}`
 - `GET /api/counter/get?name=计数器名`: 获取计数器值
 
-## 网关与工作节点
+## 工作节点扩展
 
-- 网关(app.py)接收HTTP请求，创建HttpJob并加入Redis队列
-- 工作节点(worker.py)从队列获取作业并处理
-- 网关通过轮询等待处理结果，并将结果返回给客户端
-
-## 测试
+系统支持多工作节点并行处理请求。可以通过启动多个工作节点实例来扩展系统处理能力：
 
 ```bash
-# 运行所有测试
-python -m unittest discover tests
-
-# 测试网关-工作节点架构
-python -m unittest tests/test_gateway_worker.py
+python worker.py --version worker-1
+python worker.py --version worker-2
+...
 ```
 
-## Redis存储
+## 使用示例
 
-所有HTTP请求会被自动存储到Redis中，键格式为 `http_job:<request_id>`，使用响应头中的 `X-Request-ID` 可以查询对应的作业信息 
+### 增加计数器
+
+```bash
+curl -X POST http://localhost:9000/api/counter/increment \
+     -H "Content-Type: application/json" \
+     -d '{"name": "visitors", "amount": 1}'
+```
+
+### 获取计数器值
+
+```bash
+curl http://localhost:9000/api/counter/get?name=visitors
+```
+
+## 单元测试
+* 本地启动一个 redis 服务
+```
+./run.sh test
+```
