@@ -4,10 +4,6 @@
 import os
 import json
 import redis
-from dotenv import load_dotenv
-
-# 加载环境变量
-load_dotenv()
 
 class RedisClient:
     """Redis客户端类，用于与Redis服务器交互"""

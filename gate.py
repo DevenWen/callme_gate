@@ -4,14 +4,11 @@
 import logging
 from flask import Flask, jsonify, request
 import time
-from dotenv import load_dotenv
 
 # 导入自定义模块
 from lib.router.http_job_router import init_app as init_http_job_router, process_via_gateway, capture_http_job
 from lib.router.route_registry import route_registry
 
-# 加载环境变量
-load_dotenv()
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
