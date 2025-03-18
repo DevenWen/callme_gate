@@ -7,6 +7,8 @@ import logging
 import argparse
 import uuid
 from flask import Flask
+from dotenv import load_dotenv
+load_dotenv()
 
 from lib.app_worker import worker, start_worker, stop_worker, register_handler
 from lib.model.http_job import HttpJob

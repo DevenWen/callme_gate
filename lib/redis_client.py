@@ -4,6 +4,9 @@
 import os
 import json
 import redis
+import logging
+
+logger = logging.getLogger("redic_client")
 
 class RedisClient:
     """Redis客户端类，用于与Redis服务器交互"""
@@ -25,17 +28,41 @@ class RedisClient:
         host = os.getenv('REDIS_HOST', 'localhost')
         port = int(os.getenv('REDIS_PORT', 6379))
         db = int(os.getenv('REDIS_DB', 0))
-        password = os.getenv('REDIS_PASSWORD', None)
+        password = os.getenv('REDIS_PASSWORD', '')
         use_ssl = os.getenv('REDIS_USE_SSL', 'false').lower() == 'true'
+
+        logger.info(f"Redis连接配置: host={host}, port={port}, db={db}, use_ssl={use_ssl}")
         
-        self.client = redis.Redis(
-            host=host,
-            port=port,
-            db=db,
-            password=password if password else None,
-            ssl=use_ssl,
-            decode_responses=True  # 自动将响应解码为字符串
-        )
+        # 修正密码处理方式，只有当密码不为空字符串时才传递
+        connection_params = {
+            'host': host,
+            'port': port,
+            'db': db,
+            'ssl': use_ssl,
+            'decode_responses': True  # 自动将响应解码为字符串
+        }
+        
+        if password:
+            connection_params['password'] = password
+            logger.info("使用密码认证连接Redis")
+        else:
+            logger.warning("未提供Redis密码，可能无法连接需要认证的Redis服务器")
+        
+        try:
+            self.client = redis.Redis(**connection_params)
+            # 测试连接
+            self.client.ping()
+            logger.info("成功连接到Redis服务器")
+        except redis.exceptions.AuthenticationError as e:
+            logger.error(f"Redis认证失败: {str(e)}")
+            raise
+        except redis.exceptions.ConnectionError as e:
+            logger.error(f"Redis连接错误: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"初始化Redis客户端时发生错误: {str(e)}")
+            raise
+            
         self._initialized = True
         
     def set(self, key, value, expire=None):
@@ -59,7 +86,7 @@ class RedisClient:
                 self.client.expire(key, expire)
             return True
         except Exception as e:
-            print(f"Redis set error: {e}")
+            logger.error(f"Redis set error: {str(e)}")
             return False
     
     def get(self, key, default=None):
@@ -83,7 +110,7 @@ class RedisClient:
             except (TypeError, json.JSONDecodeError):
                 return value
         except Exception as e:
-            print(f"Redis get error: {e}")
+            logger.error(f"Redis get error: {str(e)}")
             return default
     
     def delete(self, key):
@@ -98,7 +125,7 @@ class RedisClient:
         try:
             return bool(self.client.delete(key))
         except Exception as e:
-            print(f"Redis delete error: {e}")
+            logger.error(f"Redis delete error: {str(e)}")
             return False
     
     def exists(self, key):
@@ -113,7 +140,7 @@ class RedisClient:
         try:
             return bool(self.client.exists(key))
         except Exception as e:
-            print(f"Redis exists error: {e}")
+            logger.error(f"Redis exists error: {str(e)}")
             return False
             
     def ttl(self, key):
@@ -128,5 +155,5 @@ class RedisClient:
         try:
             return self.client.ttl(key)
         except Exception as e:
-            print(f"Redis ttl error: {e}")
+            logger.error(f"Redis ttl error: {str(e)}")
             return -2 
