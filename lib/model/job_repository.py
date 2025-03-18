@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from typing import Optional, Dict, List, Type, TypeVar, Generic, Any
 import json
 from .job import Job

@@ -25,3 +25,5 @@ Thumbs.db
 
 .env
 logs
+.pytest_cache
+bin

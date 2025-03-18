@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 Redis分布式锁实现
 提供基于Redis的分布式锁功能和装饰器

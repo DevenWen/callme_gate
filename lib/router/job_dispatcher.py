@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 任务分发类
 用于分发任务到对应的工作节点队列

@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 路由信息抽象类
 用于表示API路由和相关信息

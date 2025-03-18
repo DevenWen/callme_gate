@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 分布式锁模块
 提供基于Redis的分布式锁实现和相关工具

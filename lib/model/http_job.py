@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from typing import Dict, Any, Optional, ClassVar, List, Union
 from .job import Job, JobStatus
 

@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 路由模块
 处理HTTP请求路由和中间件功能

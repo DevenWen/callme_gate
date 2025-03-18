@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 节点抽象类
 用于表示一个工作节点及其状态
