@@ -4,3 +4,5 @@
 # numpy==1.23.1 
 Flask
 tabulate
+redis==4.5.1
+python-dotenv==1.0.0

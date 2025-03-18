@@ -1,6 +1,6 @@
 # 
 rm -rf tabulate
-rm -rf tabulate-.*
+rm -rf tabulate-0.9.0.dist-info
 
 pip install -t . tabulate
 
@@ -14,5 +14,5 @@ zip $zip_filename -r ./*
 
 # 清理文件
 rm -rf tabulate
-rm -rf tabulate-.*
+rm -rf tabulate-0.9.0.dist-info
 
