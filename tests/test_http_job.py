@@ -7,9 +7,9 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from gate import app
-from lib.model.http_job import HttpJob
-from lib.model.job_repository import http_job_repository
-from lib.redis_client import RedisClient
+from callme import HttpJob
+from callme.model.job_repository import http_job_repository
+from callme.redis_client import RedisClient
 
 class TestHttpJob(unittest.TestCase):
     """测试HTTP作业模块"""

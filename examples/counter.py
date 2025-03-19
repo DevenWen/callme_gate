@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import Dict, Any, Optional
-from .redis_client import RedisClient
+from lib.redis_client import RedisClient
 
 class Counter:
     """计数器类
@@ -99,16 +99,18 @@ class Counter:
         """
         return self.increment(name, -amount)
         
-    def reset(self, name: str) -> bool:
+    def reset(self, name: str, initial_value: int = 0) -> int:
         """重置计数器
         
         Args:
             name: 计数器名称
+            initial_value: 重置后的初始值
             
         Returns:
-            是否重置成功
+            重置后的计数器值
         """
-        return self.set(name, 0)
+        self.set(name, initial_value)
+        return initial_value
         
     def delete(self, name: str) -> bool:
         """删除计数器

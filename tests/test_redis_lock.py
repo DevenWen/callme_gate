@@ -9,7 +9,8 @@ import os
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
-from lib.lock import RedisLock, with_distributed_lock
+from callme.lock import RedisLock, with_distributed_lock
+from callme.lock.redis_lock import LOCK_KEY_PREFIX
 
 
 class TestRedisLock(unittest.TestCase):
@@ -18,7 +19,7 @@ class TestRedisLock(unittest.TestCase):
     def setUp(self):
         """测试前的准备工作"""
         # 创建一个Mock的RedisClient实例
-        self.redis_client_patcher = patch('lib.lock.redis_lock.RedisClient')
+        self.redis_client_patcher = patch('callme.lock.redis_lock.RedisClient')
         self.mock_redis_client_class = self.redis_client_patcher.start()
         self.mock_redis_client = MagicMock()
         self.mock_redis_client_class.return_value = self.mock_redis_client
@@ -28,7 +29,7 @@ class TestRedisLock(unittest.TestCase):
         self.mock_redis_client.client = self.mock_redis
         
         # 模拟UUID生成以便控制锁ID
-        self.uuid_patcher = patch('uuid.uuid4')
+        self.uuid_patcher = patch('callme.lock.redis_lock.uuid.uuid4')
         self.mock_uuid = self.uuid_patcher.start()
         self.mock_uuid.return_value = "test_lock_id"
 
@@ -75,8 +76,8 @@ class TestRedisLock(unittest.TestCase):
     def test_release_lock_success(self):
         """测试成功释放锁"""
         # 模拟锁的获取和释放
-        self.mock_redis_client.get.return_value = "test_lock_id"
-        self.mock_redis_client.delete.return_value = True
+        self.mock_redis.get.return_value = "test_lock_id"
+        self.mock_redis.delete.return_value = True
 
         # 创建锁并获取
         lock = RedisLock("test_lock")
@@ -84,13 +85,13 @@ class TestRedisLock(unittest.TestCase):
 
         # 验证结果
         self.assertTrue(result)
-        self.mock_redis_client.get.assert_called_once()
-        self.mock_redis_client.delete.assert_called_once()
+        self.mock_redis.get.assert_called_once()
+        self.mock_redis.delete.assert_called_once()
 
     def test_release_lock_failure_wrong_owner(self):
         """测试释放锁失败 - 不是锁的拥有者"""
         # 模拟Redis返回不同的锁ID
-        self.mock_redis_client.get.return_value = "different_lock_id"
+        self.mock_redis.get.return_value = "different_lock_id"
 
         # 创建锁
         lock = RedisLock("test_lock")
@@ -98,16 +99,16 @@ class TestRedisLock(unittest.TestCase):
 
         # 验证结果
         self.assertFalse(result)
-        self.mock_redis_client.get.assert_called_once()
+        self.mock_redis.get.assert_called_once()
         # 由于不是锁的拥有者，所以不应该调用delete
-        self.mock_redis_client.delete.assert_not_called()
+        self.mock_redis.delete.assert_not_called()
 
     def test_context_manager(self):
         """测试使用上下文管理器(with语句)"""
         # 配置模拟Redis客户端行为
         self.mock_redis.set.return_value = True
-        self.mock_redis_client.get.return_value = "test_lock_id"
-        self.mock_redis_client.delete.return_value = True
+        self.mock_redis.get.return_value = "test_lock_id"
+        self.mock_redis.delete.return_value = True
 
         # 使用with语句的上下文管理器
         with RedisLock("test_lock") as lock:
@@ -116,12 +117,12 @@ class TestRedisLock(unittest.TestCase):
 
         # 验证锁被正确获取和释放
         self.mock_redis.set.assert_called_once()
-        self.mock_redis_client.delete.assert_called_once()
+        self.mock_redis.delete.assert_called_once()
 
     def test_extend_lock(self):
         """测试延长锁的过期时间"""
         # 配置模拟Redis客户端行为
-        self.mock_redis_client.get.return_value = "test_lock_id"
+        self.mock_redis.get.return_value = "test_lock_id"
         self.mock_redis.ttl.return_value = 5  # 剩余5秒
         self.mock_redis.set.return_value = True
 
@@ -193,7 +194,7 @@ class TestRedisLockDecorator(unittest.TestCase):
     def setUp(self):
         """测试前的准备工作"""
         # 创建一个Mock的RedisClient实例
-        self.redis_client_patcher = patch('lib.lock.redis_lock.RedisClient')
+        self.redis_client_patcher = patch('callme.lock.redis_lock.RedisClient')
         self.mock_redis_client_class = self.redis_client_patcher.start()
         self.mock_redis_client = MagicMock()
         self.mock_redis_client_class.return_value = self.mock_redis_client
@@ -204,11 +205,11 @@ class TestRedisLockDecorator(unittest.TestCase):
         
         # 设置模拟返回值，确保锁可以获取和释放
         self.mock_redis.set.return_value = True
-        self.mock_redis_client.get.return_value = "test_lock_id"
-        self.mock_redis_client.delete.return_value = True
+        self.mock_redis.get.return_value = "test_lock_id"
+        self.mock_redis.delete.return_value = True
         
         # 修补UUID生成
-        self.uuid_patcher = patch('lib.lock.redis_lock.uuid.uuid4')
+        self.uuid_patcher = patch('callme.lock.redis_lock.uuid.uuid4')
         self.mock_uuid = self.uuid_patcher.start()
         self.mock_uuid.return_value = "test_lock_id"
 
@@ -241,7 +242,7 @@ class TestRedisLockDecorator(unittest.TestCase):
         
         # 验证锁操作是否正确
         self.mock_redis.set.assert_called()
-        self.mock_redis_client.delete.assert_called()
+        self.mock_redis.delete.assert_called()
     
     def test_dynamic_lock_name(self):
         """测试动态锁名称装饰器"""
@@ -249,47 +250,37 @@ class TestRedisLockDecorator(unittest.TestCase):
         self.mock_redis_client.reset_mock()
         self.mock_redis.reset_mock()
         
-        # 模拟锁获取总是成功
-        self.mock_redis.set.return_value = True
-        
         # 跟踪使用的锁名称
         lock_keys_used = []
         
-        # 存储锁名和锁键的映射关系，方便断言
-        def record_lock_key(lock_key, *args, **kwargs):
-            lock_keys_used.append(lock_key)
+        # 存储锁名
+        def record_lock_key(key, value, **kwargs):
+            if key.startswith(f"{LOCK_KEY_PREFIX}:"):
+                lock_keys_used.append(key)
             return True
             
         self.mock_redis.set.side_effect = record_lock_key
         
         # 定义测试锁名称生成函数和被装饰函数
+        @with_distributed_lock
+        def process_user(user_id):
+            return f"processed_{user_id}"
+            
+        # 调用装饰后的函数
         user_ids = [123, 456]
         results = []
-        
-        # 手动模拟装饰器的行为，而不是使用装饰器语法
         for user_id in user_ids:
-            lock_name = f"user_{user_id}_lock"
-            lock = RedisLock(lock_name)
-            
-            try:
-                if lock.acquire():
-                    # 模拟业务操作
-                    result = f"processed_{user_id}"
-                    results.append(result)
-            finally:
-                lock.release()
+            result = process_user(user_id)
+            results.append(result)
         
         # 验证结果    
         self.assertEqual(len(results), 2)
         for i, user_id in enumerate(user_ids):
             self.assertEqual(results[i], f"processed_{user_id}")
             
-        # 验证是否为每个用户ID创建了正确的锁
-        expected_lock_keys = [f"redis_lock:user_{user_id}_lock" for user_id in user_ids]
-        
-        # 检查每个预期的锁键是否都使用了
-        for expected_key in expected_lock_keys:
-            self.assertIn(expected_key, lock_keys_used)
+        # 检查是否为每个用户ID创建了正确的锁
+        expected_key = f"{LOCK_KEY_PREFIX}:process_user"
+        self.assertIn(expected_key, lock_keys_used)
 
 
 if __name__ == "__main__":

@@ -67,6 +67,24 @@ class HttpJob(Job):
         self.response_body = response_body
         self.error_message = error_message
     
+    @property
+    def body(self) -> Any:
+        """请求体数据，作为 json_data 的别名
+        
+        Returns:
+            请求体数据
+        """
+        return self.json_data
+    
+    @property
+    def params(self) -> Dict[str, Union[str, List[str]]]:
+        """URL查询参数，作为 query_params 的别名
+        
+        Returns:
+            URL查询参数
+        """
+        return self.query_params
+    
     def set_request(
         self,
         method: str,

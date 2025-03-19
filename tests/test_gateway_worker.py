@@ -10,11 +10,11 @@ from unittest.mock import MagicMock, patch
 # 添加项目根目录到系统路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from lib.redis_client import RedisClient
-from lib.model.job_repository import http_job_repository
-from lib.app_worker import worker, start_worker, stop_worker, register_handler, AppWorker
-from lib.model.http_job import HttpJob, JobStatus
-from lib.counter import counter
+from callme.redis_client import RedisClient
+from callme.model.job_repository import http_job_repository
+from callme.app_worker import worker, start_worker, stop_worker, register_handler, AppWorker
+from callme.model.http_job import HttpJob, JobStatus
+from examples.counter import counter
 
 # 创建 Redis 客户端的模拟
 mock_redis = MagicMock()
@@ -131,7 +131,7 @@ class TestGatewayWorker(unittest.TestCase):
         global mock_redis
         mock_redis.reset_mock()
     
-    @patch('lib.model.job_repository.http_job_repository.get')
+    @patch('callme.model.job_repository.http_job_repository.get')
     def test_direct_worker_processing(self, mock_get):
         """测试工作节点直接处理作业"""
         # 模拟作业处理完成

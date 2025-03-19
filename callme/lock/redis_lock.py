@@ -95,7 +95,7 @@ class RedisLock:
             是否成功释放锁
         """
         # 获取当前锁的值
-        current_lock_value = self.redis.get(self.lock_key)
+        current_lock_value = self.redis.client.get(self.lock_key)
         
         # 检查是否是锁的拥有者
         if current_lock_value != self.lock_id:
@@ -103,14 +103,14 @@ class RedisLock:
             return False
         
         # 删除锁
-        success = self.redis.delete(self.lock_key)
+        success = self.redis.client.delete(self.lock_key)
         if success:
             logger.debug(f"成功释放锁: {self.lock_name} (ID: {self.lock_id})")
             self.acquired = False
         else:
             logger.warning(f"释放锁失败: {self.lock_name} (ID: {self.lock_id})")
             
-        return success
+        return bool(success)
     
     def extend(self, additional_seconds: int) -> bool:
         """延长锁的过期时间
@@ -122,7 +122,7 @@ class RedisLock:
             是否成功延长锁时间
         """
         # 获取当前锁的值和剩余时间
-        current_lock_value = self.redis.get(self.lock_key)
+        current_lock_value = self.redis.client.get(self.lock_key)
         
         # 检查是否是锁的拥有者
         if current_lock_value != self.lock_id:
@@ -149,7 +149,7 @@ class RedisLock:
         else:
             logger.warning(f"延长锁失败: {self.lock_name}")
             
-        return success
+        return bool(success)
     
     def is_alive(self) -> bool:
         """检查锁是否仍然有效
@@ -157,7 +157,7 @@ class RedisLock:
         Returns:
             锁是否仍然有效
         """
-        current_lock_value = self.redis.get(self.lock_key)
+        current_lock_value = self.redis.client.get(self.lock_key)
         return current_lock_value == self.lock_id
     
     def __enter__(self) -> 'RedisLock':
@@ -207,7 +207,8 @@ def with_distributed_lock(
                 retry_delay=retry_delay
             )
             
-            if not lock.acquire():
+            acquired = lock.acquire()
+            if not acquired:
                 logger.warning(f"无法获取锁: {lock_name}，跳过执行 {func.__name__}")
                 return None
             
@@ -240,7 +241,8 @@ def with_distributed_lock(
             )
             
             # 尝试获取锁
-            if not lock.acquire():
+            acquired = lock.acquire()
+            if not acquired:
                 logger.warning(f"无法获取锁: {lock_name}，跳过执行 {func.__name__}")
                 return None  # 无法获取锁，返回None
             

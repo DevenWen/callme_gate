@@ -66,6 +66,10 @@ def api_router(subpath):
     # 实际处理由 process_via_gateway 装饰器和工作节点完成
     pass
 
-if __name__ == "__main__":
+def main():
+    """网关主函数入口点"""
     logger.info("启动Gateway服务，端口9000")
-    app.run(host='0.0.0.0', port=9000, debug=True) 
+    app.run(host='0.0.0.0', port=9000, debug=True)
+
+if __name__ == "__main__":
+    main() 

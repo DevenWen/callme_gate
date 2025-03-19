@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
-from lib.lock import RedisLock, with_distributed_lock
+from callme.lock import RedisLock, with_distributed_lock
 
 
 class TestRedisLockIntegration(unittest.TestCase):
