@@ -6,8 +6,8 @@ from flask import Flask, jsonify, request
 import time
 
 # 导入自定义模块
-from lib.router.http_job_router import init_app as init_http_job_router, process_via_gateway, capture_http_job
-from lib.router.route_registry import route_registry
+from callme.router.http_job_router import init_app as init_http_job_router, process_via_gateway, capture_http_job
+from callme.router.route_registry import route_registry
 
 
 # 配置日志

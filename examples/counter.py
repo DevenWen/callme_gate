@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import Dict, Any, Optional
-from lib.redis_client import RedisClient
+from callme.redis_client import RedisClient
 
 class Counter:
     """计数器类

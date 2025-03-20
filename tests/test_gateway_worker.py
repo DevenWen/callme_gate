@@ -80,8 +80,8 @@ class TestGatewayWorker(unittest.TestCase):
     """测试网关-工作节点架构"""
     
     @classmethod
-    @patch('lib.redis_client.redis.Redis', return_value=mock_redis)
-    @patch('lib.redis_client.RedisClient', return_value=mock_redis)
+    @patch('callme.redis_client.redis.Redis', return_value=mock_redis)
+    @patch('callme.redis_client.RedisClient', return_value=mock_redis)
     def setUpClass(cls, mock_redis_client, mock_redis_lib):
         """测试前准备，创建自己的工作节点而不使用全局工作节点"""
         # 确保没有全局工作节点运行
